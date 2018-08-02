@@ -3,19 +3,99 @@ function init() {
   // get the list of files
   var filenames = JSON.parse(File2Strokes.readFile(filenamesFile));
 
-  // get strokes from file
-  for (var i = 0; i < filenames.length; ++i) {
-    // get the current filename
-    var filename = filenames[i];
+  // get a single filename and corresponding stroke data
+  var filename = filenames[5];
+  var strokes = File2Strokes.parse("data/" + filename);
 
-    // get the strokes data from the file 
-    var strokes = File2Strokes.parse("data/" + filename);
+  // calculate features
+  var f01 = calculateFeature01(strokes);
+  var f02 = calculateFeature02(strokes);
+  var f03 = calculateFeature03(strokes);
+  var f04 = calculateFeature04(strokes);
+  var f05 = calculateFeature05(strokes);
+  var f06 = calculateFeature06(strokes);
+  var f07 = calculateFeature07(strokes);
+  var f08 = calculateFeature08(strokes);
+  var f09 = calculateFeature09(strokes);
+  var f10 = calculateFeature10(strokes);
+  var f11 = calculateFeature11(strokes);
+  var f12 = calculateFeature12(strokes);
+  var f13 = calculateFeature13(strokes);
+  var fHH = calculateFeatureHH(strokes);
+  var features = [f01, f02, f03, f04, f05, f06, f07, f08, f09, f10, f11, f12, f13, fHH];
 
-    // example 1: calculate total distance
-    var totalDistance = calculateTotalDistance(strokes);
-    console.log("totalDistance: " + totalDistance);
+  outputFeatures(features);  
+}
+
+// TODO
+function calculateFeature01(input) { return NaN; }
+function calculateFeature02(input) { return NaN; }
+function calculateFeature03(input) { return NaN; }
+function calculateFeature04(input) { return NaN; }
+function calculateFeature05(input) { return NaN; }
+function calculateFeature06(input) { return NaN; }
+function calculateFeature07(input) { return NaN; }
+function calculateFeature08(input) { return NaN; }
+function calculateFeature09(input) { return NaN; }
+function calculateFeature10(input) { return NaN; }
+function calculateFeature11(input) { return NaN; }
+function calculateFeature12(input) { return NaN; }
+function calculateFeature13(input) { return NaN; }
+
+function calculateFeatureHH(input) {
+  // copy strokes
+  var strokes = copy(input);
+
+  // calculate speeds of the strokes
+  var speeds = calculateSpeeds(strokes);
+
+  // calculate the average, min, and max speeds
+  var averageSpeed = speeds.reduce( function(a, b) { return a + b; } , 0 ) / speeds.length;
+  var minSpeed = speeds.reduce( function(a, b) { return a < b ? a : b; } , Number.MAX_SAFE_INTEGER);
+  var maxSpeed = speeds.reduce( function( a, b) { return a > b ? a : b; } , 0);
+
+  // TODO: complete hesitation feature
+  //
+
+  // temporary return value
+  return NaN;
+}
+
+// #region Helper Functions
+
+function calculateSpeeds(input) {
+  // copy strokes
+  var strokes = copy(input);
+  
+  // collect speeds for all strokes
+  var speeds = [];
+  for (var i = 0; i < strokes.length; ++i) {
+    // get the current points
+    var stroke = strokes[i]
+    var points = stroke;
+
+    // collect speeds for current stroke
+    for (var j = 0; j < points.length - 1; ++j) {
+      // get current and next point
+      var p1 = points[j];
+      var p2 = points[j + 1];
+
+      // calculate speed
+      var distance = calculateDistance(p1, p2);
+      var time = p2.time - p1.time;
+
+      // skip if time is negative
+      if (time < 0) { continue; }
+
+      var speed = distance / time;
+
+      // add speed to collection
+      speeds.push(speed);
+    }
+
   }
 
+  return speeds;
 }
 
 function calculateTotalDistance(input) {
@@ -68,6 +148,17 @@ function copy(object) {
   var copy = JSON.parse(temp);
   return copy;
 }
+
+function outputFeatures(features) {
+  var output = "";
+  for (var i = 0; i < features.length; ++i) {
+    var feature = features[i];
+    output += feature + "\t";
+  }
+  console.log(output);
+}
+
+// #endregion
 
 // #region Fields
 
@@ -136,7 +227,7 @@ var File2Strokes = {
     var tokens = line.split(" ");
 
     // get and parse time string
-    var timeString = tokens[2] + " " + tokens[3];
+    var timeString = tokens[2] + " " + tokens[3] + " " + tokens[4];
     var time = Number.parseFloat(this.parseTokenToTime(timeString));
 
     // get the point string token
@@ -171,13 +262,17 @@ var File2Strokes = {
 
     // convert time string to ISO format
     var milliseconds;
+    var ampm = tokens[2].toLowerCase();
     let timeString = tokens[1]; {
       // get inner time tokens
       var timeTokens = timeString.split(":");
-      var hourToken = timeTokens[0];
+      var hourToken = timeTokens[0].length === 1 ? "0" + timeTokens[0] : timeTokens[0];
       var minuteToken = timeTokens[1];
       var secondToken = timeTokens[2];
       var millisecondToken = timeTokens[3];
+
+      // case: time is PM => add 12 hours
+      if (ampm === "pm") { hourToken = Number.parseInt(hourToken) + 12; }
 
       // get ISO time string format
       timeString = "T" + hourToken + ":" + minuteToken + ":" + secondToken + "Z";
